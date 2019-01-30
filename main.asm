@@ -11,29 +11,17 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 .byte (INES_MAPPER & %11110000)
 .byte $0, $0, $0, $0, $0, $0, $0, $0 ; padding
 
-;
-; CHR ROM
-;
-
 .segment "TILES"
 .incbin "background.chr"
-
-;
-; vectors placed at top 6 bytes of memory area
-;
 
 .segment "VECTORS"
 .word nmi
 .word reset
 .word irq
 
-;
-; reset routine
-;
-
 .segment "CODE"
 reset:
-	sei       ; mask interrupts
+	sei       ; disable interrupts during game initialization
 	lda #0
 	sta $2000 ; disable NMI
 	sta $2001 ; disable rendering
@@ -43,13 +31,13 @@ reset:
 	sta $4017 ; disable APU IRQ
 	cld       ; disable decimal mode
 	ldx #$FF
-	txs       ; initialize stack
-	; wait for first vblank
+	txs       ; initialize the stack
+	; wait for the first vblank
 	bit $2002
 	:
 		bit $2002
 		bpl :-
-	; clear all RAM to 0
+	; reset all RAM
 	lda #0
 	ldx #0
 	:
@@ -73,7 +61,7 @@ reset:
 		inx
 		inx
 		bne :-
-	; wait for second vblank
+	; wait for the second vblank
 	:
 		bit $2002
 		bpl :-
@@ -96,7 +84,7 @@ scroll_x:       .res 1 ; x scroll position
 scroll_y:       .res 1 ; y scroll position
 scroll_nmt:     .res 1 ; nametable select (0-3 = $2000,$2400,$2800,$2C00)
 temp:           .res 1 ; temporary variable
-background_index: .res 2
+background_pointer: .res 2
 
 .segment "BSS"
 nmt_update: .res 256 ; nametable update entry buffer for PPU update
@@ -227,11 +215,11 @@ main:
 	jsr setup_background
 	jsr ppu_update
 ; The main loop
-@loop:
-	jmp @loop
+@GameLoop:
+	jmp @GameLoop
 
 ; nametable data
-level_1:
+background:
   ; tile data
   .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01
   .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01
@@ -268,25 +256,35 @@ level_1:
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 
 setup_background:
-	lda $2002 ; reset latch
-	lda #$20
+	lda $2002 ; reset PPU latch
+	lda #$20 ; Write to the first nametable at #$2000
 	sta $2006
 	lda #$00
 	sta $2006
-  ; store the memory address of level_0 in two bytes at background_index
-  lda #<level_1
-  sta background_index
-  lda #>level_1
-  sta background_index + 1
+  ; store the memory address of the background in two bytes
+	; at background_pointer and background_pointer + 1
+  lda #<background
+  sta background_pointer
+  lda #>background
+  sta background_pointer + 1
 
-  ldx #4
-  ldy #0
+	; Loop 1024 times to write the entire first nametable.
+
+	; y is a counter that increases with each loop iteration.
+	ldy #0
+	; since the y register can only hold 256 values, we use
+	; a secondary counter, x, which counts how many times
+	; y has gone around the 0-256 cycle. The loop will complete
+	; after 4 cycles of x, 1024 interations.
+	ldx #0
   @NametableLoop:
-    lda (background_index), y
-    sta $2007
+    lda (background_pointer), y ; Load the nametable data at the pointer
+    sta $2007 ; Write it to the PPU
     iny
+		cpy #0
     bne @NametableLoop
-    inc background_index + 1
-    dex
+    inc background_pointer + 1 ; increase the high bit of the pointer
+    inx
+		cpx #4
     bne @NametableLoop
 	rts

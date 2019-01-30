@@ -1,7 +1,7 @@
 Modules list:
 -------------
 main.o:
-    CODE              Offs=000000  Size=000515  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=000519  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=000020  Align=00001  Fill=0000
     BSS               Offs=000000  Size=000120  Align=00001  Fill=0000
     ZEROPAGE          Offs=000000  Size=00000A  Align=00001  Fill=0000
@@ -20,8 +20,8 @@ TILES                 000000  001FFF  002000  00001
 ZEROPAGE              000000  000009  00000A  00001
 OAM                   000200  0002FF  000100  00001
 BSS                   000300  00041F  000120  00001
-CODE                  008000  008514  000515  00001
-RODATA                008515  008534  000020  00001
+CODE                  008000  008518  000519  00001
+RODATA                008519  008538  000020  00001
 VECTORS               00FFFA  00FFFF  000006  00001
 
 
