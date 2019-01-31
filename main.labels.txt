@@ -1,8 +1,8 @@
-al 008507 .@NametableLoop
-al 0080EE .background
+al 00850A .@NametableLoop
+al 0080F1 .background
 al 0080EB .@GameLoop
-al 0084EE .setup_background
-al 008519 .example_palette
+al 0084F1 .setup_background
+al 00851C .example_palette
 al 0080CF .ppu_update
 al 0080A8 .@scroll
 al 0080C4 .@ppu_update_end

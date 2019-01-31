@@ -216,6 +216,7 @@ main:
   jsr ppu_update
 ; The main loop
 @GameLoop:
+  jsr ppu_update
   jmp @GameLoop
 
 ; nametable data
