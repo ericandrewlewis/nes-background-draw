@@ -68,6 +68,10 @@ reset:
   ; NES is initialized, ready to begin!
   ; enable the NMI for graphical updates, and jump to our main program
   lda #%10001000
+  sta $2000
+
+  ; clear the interrupt disable flag to enable irqs
+  cli
   jmp main
 
 ;
@@ -112,7 +116,7 @@ nmi:
   ;
   lda nmi_ready
   bne :+ ; nmi_ready == 0 not ready to update PPU
-    jmp @ppu_update_end
+   jmp @ppu_update_end
   :
   cmp #2 ; nmi_ready == 2 turns rendering off
   bne :+
@@ -173,6 +177,21 @@ nmi:
   ; flag PPU update complete
   ldx #0
   stx nmi_ready
+
+  ; Write to $E000 to acknowledge any currently pending interrupts
+  lda #1
+  sta $E000
+  ; setup MMC3 to generate an IRQ after
+  ; 120 scanlines
+  lda #120
+  sta $C000
+  sta $C001
+  ; Write to $E000 again to latch in the countdown value
+  lda #1
+  sta $E000
+  ; Write to $E001 to enable the IRQ counter
+  lda #1
+  sta $E001
 @ppu_update_end:
   ; if this engine had music/sound, this would be a good place to play it
   ; unlock re-entry flag
@@ -191,17 +210,24 @@ nmi:
 irq:
   ; store a, x, and y register values onto the stack during IRQ
   pha
-	txa
-	pha
-	tya
-	pha
-
+  txa
+  pha
+  tya
+  pha
+  lda scroll_nmt
+  and #%00000011 ; keep only lowest 2 bits to prevent error
+  ora #%10001000
+  sta $2000
+  lda #0
+  sta $2005
+  lda #0
+  sta $2005
   ; restore a, x, and y register values
   pla
-	tay
-	pla
-	tax
-	pla
+  tay
+  pla
+  tax
+  pla
   rti
 
 .segment "CODE"
@@ -245,6 +271,7 @@ main:
   jsr ppu_update
 ; The main loop
 @GameLoop:
+  lda #0
   jsr ppu_update
   jmp @GameLoop
 
@@ -256,7 +283,7 @@ nametable_1_background:
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-  .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+  .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
