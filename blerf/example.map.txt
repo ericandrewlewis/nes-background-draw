@@ -1,7 +1,7 @@
 Modules list:
 -------------
 example.o:
-    CODE              Offs=000000  Size=0003AC  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=0003AF  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=000020  Align=00001  Fill=0000
     BSS               Offs=000000  Size=000120  Align=00001  Fill=0000
     ZEROPAGE          Offs=000000  Size=000010  Align=00001  Fill=0000
@@ -20,8 +20,8 @@ TILES                 000000  001FFF  002000  00001
 ZEROPAGE              000000  00000F  000010  00001
 OAM                   000200  0002FF  000100  00001
 BSS                   000300  00041F  000120  00001
-CODE                  008000  0083AB  0003AC  00001
-RODATA                0083AC  0083CB  000020  00001
+CODE                  008000  0083AE  0003AF  00001
+RODATA                0083AF  0083CE  000020  00001
 VECTORS               00FFFA  00FFFF  000006  00001
 
 

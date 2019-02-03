@@ -374,11 +374,13 @@ example_palette:
 .byte $0F,$12,$22,$32 ; sp3 marine
 
 .segment "ZEROPAGE"
-cursor_x: .res 1
-cursor_y: .res 1
+character_location_x: .res 1
+character_location_y: .res 1
 temp_x:   .res 1
 temp_y:   .res 1
-moving:   .res 1
+; the direction the character is moving in.
+; %000 = stationary, %001 = up, %010 = right, %011 = down, %100 = left
+character_direction:   .res 1
 dest_y:   .res 1
 debug:    .res 1
 
@@ -396,12 +398,12 @@ main:
 	jsr setup_background
 	; center the cursor
 	lda #128
-	sta cursor_x
+	sta character_location_x
 	lda #120
-	sta cursor_y
+	sta character_location_y
 	; Set the character to not moving
 	lda #0
-	sta moving
+	sta character_direction
 	; show the screen
 	jsr draw_cursor
 	jsr ppu_update
@@ -412,16 +414,19 @@ main:
 
 
 	; If Blerf is moving to a new place, move them one pixel.
-	lda moving
-	beq :++
-		dec cursor_y
-		lda dest_y
-		sec
-		sbc cursor_y
-		cmp #0
-		bne :+
-			lda #0
-			sta moving
+	lda character_direction
+	beq :+++
+		cmp #%001
+		bne:++
+			dec character_location_y
+			lda dest_y
+			sec
+			sbc character_location_y
+			cmp #0
+			bne :+
+				lda #0
+				sta character_direction
+			:
 		:
 	:
 
@@ -478,14 +483,12 @@ main:
 push_u:
 	; when the up button is pressed, mark that the character is moving
 	; and set their destination y
-	lda $01
-	sta debug
-	lda moving
+	lda character_direction
 	cmp #0
 	bne :+
-		lda #1
-		sta moving
-		lda cursor_y
+		lda #%001
+		sta character_direction
+		lda character_location_y
 		sec
 		sbc #16
 		sta dest_y
@@ -493,27 +496,28 @@ push_u:
 	rts
 
 push_d:
-	; Decrease y by 8 pixels
-	lda cursor_y
-	adc #8
-	sta cursor_y
-	cmp #240
-	bcc :+
-		lda #0
-		sta cursor_y
+	lda character_direction
+	cmp #0
+	bne :+
+		lda #%011
+		sta character_direction
+		lda character_location_y
+		clc
+		adc #16
+		sta dest_y
 	:
 	rts
 
 push_l:
-	lda cursor_x
+	lda character_location_x
 	sbc #8
-	sta cursor_x
+	sta character_location_x
 	rts
 
 push_r:
-	lda cursor_x
+	lda character_location_x
 	adc #8
-	sta cursor_x
+	sta character_location_x
 	rts
 
 push_select:
@@ -557,32 +561,32 @@ release_start:
 push_b:
 	;
 	jsr snap_cursor
-	lda cursor_x
+	lda character_location_x
 	lsr
 	lsr
 	lsr
-	tax ; X = cursor_x / 8
-	lda cursor_y
+	tax ; X = character_location_x / 8
+	lda character_location_y
 	lsr
 	lsr
 	lsr
-	tay ; Y = cursor_y / 8
+	tay ; Y = character_location_y / 8
 	lda #4
 	jsr ppu_update_tile ; puts tile 4 at X/Y
 	rts
 
 push_a:
 	jsr snap_cursor
-	lda cursor_x
+	lda character_location_x
 	lsr
 	lsr
 	lsr
-	sta temp_x ; cursor_x / 8
-	lda cursor_y
+	sta temp_x ; character_location_x / 8
+	lda character_location_y
 	lsr
 	lsr
 	lsr
-	sta temp_y ; cursor_y / 8
+	sta temp_y ; character_location_y / 8
 	; draw a ring of 8 tiles around the cursor
 	dec temp_x ; x-1
 	dec temp_y ; y-1
@@ -634,33 +638,33 @@ push_a:
 
 ; snap the cursor to nearest tile, which is every 8 pixels.
 snap_cursor:
-	lda cursor_x
+	lda character_location_x
 	clc
 	adc #%00000100
 	and #%11111000
-	sta cursor_x
-	lda cursor_y
+	sta character_location_x
+	lda character_location_y
 	clc
 	adc #%00000100
 	and #%11111000
-	sta cursor_y
+	sta character_location_y
 	; Y wraps at 240 pixels
 	cmp #240
 	bcc :+
 		lda #0
-		sta cursor_y
+		sta character_location_y
 	:
 	rts
 
 draw_cursor:
 	; four sprites centred around the currently selected tile
 	; y position (note, needs to be one line higher than sprite's appearance)
-	lda cursor_y
+	lda character_location_y
 	sec
 	sbc #5 ; Y-5
 	sta oam+(0*4)+0
 	; sta oam+(1*4)+0
-	lda cursor_y
+	lda character_location_y
 	clc
 	; adc #3 ; Y+3
 	; sta oam+(2*4)+0
@@ -681,12 +685,12 @@ sta oam+(0*4)+1
 	; lda #%11000000 ; both flip
 	; sta oam+(3*4)+2
 	; x position
-	lda cursor_x
+	lda character_location_x
 	sec
 	sbc #4 ; X-4
 	sta oam+(0*4)+3
 	; sta oam+(2*4)+3
-	; lda cursor_x
+	; lda character_location_x
 	clc
 	; adc #4 ; X+4
 	; sta oam+(1*4)+3
