@@ -381,6 +381,7 @@ temp_y:   .res 1
 ; the direction the character is moving in.
 ; %000 = stationary, %001 = up, %010 = right, %011 = down, %100 = left
 character_direction:   .res 1
+dest_x:   .res 1
 dest_y:   .res 1
 debug:    .res 1
 
@@ -415,18 +416,67 @@ main:
 
 	; If Blerf is moving to a new place, move them one pixel.
 	lda character_direction
-	beq :+++
-		cmp #%001
-		bne:++
+	cmp #%001
+	bne:+++
+		lda dest_y
+		sec
+		sbc character_location_y
+		cmp #0
+		bne :+
+			lda #0
+			sta character_direction
+		:
+		cmp #0
+		beq :+
 			dec character_location_y
-			lda dest_y
-			sec
-			sbc character_location_y
-			cmp #0
-			bne :+
-				lda #0
-				sta character_direction
-			:
+		:
+	:
+	lda character_direction
+	cmp #%011
+	bne:+++
+		lda dest_y
+		sec
+		sbc character_location_y
+		cmp #0
+		bne :+
+			lda #0
+			sta character_direction
+		:
+		cmp #0
+		beq :+
+			inc character_location_y
+		:
+	:
+	lda character_direction
+	cmp #%010
+	bne:+++
+		lda dest_x
+		sec
+		sbc character_location_x
+		cmp #0
+		bne :+
+			lda #0
+			sta character_direction
+		:
+		cmp #0
+		beq :+
+			inc character_location_x
+		:
+	:
+	lda character_direction
+	cmp #%100
+	bne:+++
+		lda dest_x
+		sec
+		sbc character_location_x
+		cmp #0
+		bne :+
+			lda #0
+			sta character_direction
+		:
+		cmp #0
+		beq :+
+			dec character_location_x
 		:
 	:
 
@@ -504,20 +554,36 @@ push_d:
 		lda character_location_y
 		clc
 		adc #16
+		clc
 		sta dest_y
 	:
 	rts
 
 push_l:
-	lda character_location_x
-	sbc #8
-	sta character_location_x
+	lda character_direction
+	cmp #0
+	bne :+
+		lda #%100
+		sta character_direction
+		lda character_location_x
+		sec
+		sbc #16
+		sta dest_x
+	:
 	rts
 
 push_r:
-	lda character_location_x
-	adc #8
-	sta character_location_x
+	lda character_direction
+	cmp #0
+	bne :+
+		lda #%010
+		sta character_direction
+		lda character_location_x
+		clc
+		adc #16
+		clc
+		sta dest_x
+	:
 	rts
 
 push_select:
